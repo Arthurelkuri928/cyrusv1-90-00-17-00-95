@@ -215,6 +215,53 @@ export type Database = {
         }
         Relationships: []
       }
+      affiliate_links: {
+        Row: {
+          clicks: number
+          conversions: number
+          created_at: string
+          id: string
+          is_active: boolean
+          link_code: string
+          link_type: string
+          link_url: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          clicks?: number
+          conversions?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          link_code: string
+          link_type?: string
+          link_url: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          clicks?: number
+          conversions?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          link_code?: string
+          link_type?: string
+          link_url?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_links_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       affiliate_sales: {
         Row: {
           amount: number
@@ -1220,6 +1267,10 @@ export type Database = {
         Args: { item_id: string }
         Returns: undefined
       }
+      generate_affiliate_code: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_admin_users: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1433,6 +1484,10 @@ export type Database = {
         Returns: boolean
       }
       is_admin: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
+      is_affiliate: {
         Args: { user_id: string }
         Returns: boolean
       }
