@@ -2,20 +2,7 @@
 import PlansTable from "./PlansTable";
 import { useState, useEffect } from "react";
 
-interface Product {
-  id: string;
-  name: string;
-  price_in_cents: number;
-  duration_days: number;
-  stripe_price_id: string | null;
-}
-
-interface PlansTableWrapperProps {
-  plans: Product[];
-  loading: boolean;
-}
-
-const PlansTableWrapper = ({ plans, loading }: PlansTableWrapperProps) => {
+const PlansTableWrapper = () => {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
@@ -36,14 +23,7 @@ const PlansTableWrapper = ({ plans, loading }: PlansTableWrapperProps) => {
           
           {/* Container com sombra suave para harmonizar com a Home */}
           <div className="bg-gradient-to-br from-white/5 to-transparent p-8 rounded-2xl border border-[#8E24AA]/20 backdrop-blur-sm">
-            {loading ? (
-              <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                <p className="text-white mt-4">Carregando planos...</p>
-              </div>
-            ) : (
-              <PlansTable plans={plans} />
-            )}
+            <PlansTable />
           </div>
           
           {/* Microcopy abaixo da tabela */}

@@ -14,43 +14,12 @@ import ImprovedFinalCTA from "@/components/plans/ImprovedFinalCTA";
 import Faq from "@/components/Faq";
 import { useState, useEffect } from "react";
 import { APP_CONFIG } from "@/config/appConfig";
-import { supabase } from "@/integrations/supabase/client";
-
-interface Product {
-  id: string;
-  name: string;
-  price_in_cents: number;
-  duration_days: number;
-  stripe_price_id: string | null;
-}
 
 const PlanosPage = () => {
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [plans, setPlans] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
   
   useEffect(() => {
-    const fetchPlans = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('products')
-          .select('*')
-          .order('price_in_cents', { ascending: true });
-
-        if (error) {
-          console.error('Error fetching plans:', error);
-        } else if (data) {
-          setPlans(data);
-        }
-      } catch (err) {
-        console.error('Error fetching plans:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPlans();
     setIsLoaded(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
@@ -93,7 +62,7 @@ const PlanosPage = () => {
           
           {/* Tabela de Planos - Reduced spacing from hero */}
           <div className="-mt-8">
-            <PlansTableWrapper plans={plans} loading={loading} />
+            <PlansTableWrapper />
           </div>
           
           {/* Bloco de Garantia */}
