@@ -1,139 +1,120 @@
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-// import { Elements } from '@stripe/react-stripe-js'; // Comentado
-// import PaymentForm from '@/components/checkout/PaymentForm'; // Comentado
-// import { stripePromise, isStripeConfigured } from '@/lib/stripe'; // Comentado
-// TODO: Remover ou substituir a lógica de checkout do Stripe
+import { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { loadStripe } from '@stripe/stripe-js';
+import {
+  Elements,
+  PaymentElement,
+  useStripe,
+  useElements,
+} from '@stripe/react-stripe-js';
 import { supabase } from '@/integrations/supabase/client';
 
-const CheckoutPage: React.FC = () => {
-  const { priceId } = useParams<{ priceId: string }>();
-  
-  // Estados para gerir a subscrição
+// Load Stripe outside of the component to avoid recreating it on every render
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+
+const PaymentForm = () => {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (!stripe || !elements) {
+      // Stripe.js has not yet loaded.
+      return;
+    }
+
+    setIsLoading(true);
+
+    const { error } = await stripe.confirmPayment({
+      elements,
+      confirmParams: {
+        // Make sure to change this to your payment completion page
+        return_url: `${window.location.origin}/pagamento-sucesso`,
+      },
+    });
+
+    // This point will only be reached if there is an immediate error when
+    // confirming the payment. Otherwise, your customer will be redirected to
+    // your `return_url`.
+    if (error.type === "card_error" || error.type === "validation_error") {
+      setErrorMessage(error.message || 'Ocorreu um erro inesperado.');
+    } else {
+      setErrorMessage("Ocorreu um erro inesperado.");
+    }
+
+    setIsLoading(false);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+        <h2 className="text-2xl font-bold text-gray-800 mb-6">Complete seu Pagamento</h2>
+        <PaymentElement id="payment-element" />
+        <button
+            disabled={isLoading || !stripe || !elements}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300 mt-6"
+        >
+            {isLoading ? "Processando..." : "Pagar e Assinar"}
+        </button>
+        {errorMessage && <div className="mt-4 text-red-600 text-sm">{errorMessage}</div>}
+    </form>
+  );
+};
+
+const CheckoutPage = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const priceId = searchParams.get('priceId');
 
   useEffect(() => {
+    if (!priceId) {
+      // Redirect to plans page if no priceId is provided
+      navigate('/planos');
+      return;
+    }
+
     const createSubscription = async () => {
-      if (!priceId) {
-        setError('Price ID não encontrado na URL');
-        setIsLoading(false);
-        return;
-      }
-
       try {
-        setIsLoading(true);
-        setError(null);
-
-        // Passo 1: Criar ou obter o customer do Stripe
-        const { data: customerData, error: customerError } = await supabase.functions.invoke('create-stripe-customer');
-        
-        if (customerError) {
-          throw new Error(`Erro ao criar customer: ${customerError.message}`);
-        }
-
-        // if (!customerData?.stripe_customer_id) {
-        //   throw new Error("Customer ID não foi retornado");
-        // }
-
-        // console.log("Customer criado/obtido:", customerData.stripe_customer_id);
-
-        // Passo 2: Criar a subscrição
-        const { data: subscriptionData, error: subscriptionError } = await supabase.functions.invoke('create-subscription', {
-          body: {
-            customerId: customerData.stripe_customer_id,
-            priceId: priceId
-          }
+        const { data, error } = await supabase.functions.invoke('create-subscription', {
+          body: { priceId },
         });
 
-        if (subscriptionError) {
-          throw new Error(`Erro ao criar subscrição: ${subscriptionError.message}`);
+        if (error) {
+          throw error;
         }
 
-        if (!subscriptionData?.clientSecret) {
-          throw new Error('Client Secret não foi retornado');
+        if (data && data.clientSecret) {
+          setClientSecret(data.clientSecret);
+        } else {
+            // Handle case where clientSecret is not returned
+            navigate('/pagamento-falha');
         }
-
-        console.log('Subscrição criada com sucesso');
-        setClientSecret(subscriptionData.clientSecret);
-
-      } catch (err) {
-        console.error('Erro no processo de checkout:', err);
-        setError(err instanceof Error ? err.message : 'Erro desconhecido');
-      } finally {
-        setIsLoading(false);
+      } catch (error) {
+        console.error('Error creating subscription:', error);
+        navigate('/pagamento-falha');
       }
     };
 
     createSubscription();
-  }, [priceId]);
+  }, [priceId, navigate]);
 
-  // Renderizar loading
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background py-12 px-4">
-        <div className="max-w-2xl mx-auto">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">
-              A preparar o seu checkout...
-            </h1>
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Renderizar erro
-  if (error) {
-    return (
-      <div className="min-h-screen bg-background py-12 px-4">
-        <div className="max-w-2xl mx-auto">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">
-              Erro no Checkout
-            </h1>
-            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-6">
-              <p className="text-destructive">{error}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const options = {
+    clientSecret,
+  };
 
   return (
-    <div className="min-h-screen bg-background py-12 px-4">
-      <div className="max-w-2xl mx-auto">
-        {/* Header da página */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">
-            Finalizar Compra
-          </h1>
-          <p className="text-muted-foreground">
-            Complete o seu pagamento de forma segura
-          </p>
-          
-          {/* Mostrar o priceId capturado para confirmação */}
-          {priceId && (
-            <div className="mt-4 p-3 bg-muted rounded-md text-sm text-muted-foreground">
-              <strong>Plano selecionado:</strong> {priceId}
-            </div>
-          )}
-        </div>
-
-        {/* Stripe Elements Provider com o formulário de pagamento (desativado) */}
-        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-6 text-center">
-          <h3 className="text-destructive font-semibold mb-2">
-            Funcionalidade de Pagamento Desativada
-          </h3>
-          <p className="text-destructive/80 text-sm mb-4">
-            A funcionalidade de pagamento foi desativada para fins de teste.
-          </p>
-        </div>
-        
-      </div>
+    <div className="bg-gray-100 min-h-screen flex items-center justify-center">
+      {clientSecret ? (
+        <Elements options={options} stripe={stripePromise}>
+          <PaymentForm />
+        </Elements>
+      ) : (
+        // You can replace this with a more sophisticated loading spinner
+        <p className="text-gray-600">Carregando formulário de pagamento...</p>
+      )}
     </div>
   );
 };
