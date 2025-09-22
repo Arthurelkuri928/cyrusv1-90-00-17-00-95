@@ -1,4 +1,14 @@
-import { Plan } from "./types";
+interface Plan {
+  id: string;
+  name: string;
+  price: number;
+  period: string;
+  validity: string;
+  highlight?: boolean;
+  badge?: string;
+  priceId: string;
+}
+
 interface PlanBadgesProps {
   plans: Plan[];
 }

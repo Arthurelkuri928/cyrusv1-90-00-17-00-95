@@ -1,12 +1,27 @@
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { Plan } from "./types";
+import { useNavigate } from "react-router-dom";
+
+interface Plan {
+  id: string;
+  name: string;
+  price: number;
+  period: string;
+  validity: string;
+  highlight?: boolean;
+  badge?: string;
+  priceId: string;
+}
+
 interface PlanHeaderProps {
   plan: Plan;
 }
-const PlanHeader = ({
-  plan
-}: PlanHeaderProps) => {
+
+const PlanHeader = ({ plan }: PlanHeaderProps) => {
+  const navigate = useNavigate();
+
+  const handleSubscribe = () => {
+    navigate(`/checkout/${plan.priceId}`);
+  };
   return <div className="p-8 text-center h-full flex flex-col justify-between min-h-[400px] py-[56px] px-[13px]">
       {/* Plan content */}
       <div className="flex-1 flex flex-col justify-center space-y-6">
@@ -30,10 +45,11 @@ const PlanHeader = ({
       
       {/* CTA Button - Consistently styled */}
       <div className="mt-8">
-        <Button className="w-full bg-gradient-to-r from-[#a259ff] to-[#8b5cf6] hover:from-[#b366ff] hover:to-[#9c6cfa] text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 shadow-lg shadow-[#8b5cf6]/40 hover:shadow-xl hover:shadow-[#8b5cf6]/50 transform hover:scale-105 text-base" asChild>
-          <Link to="/entrar" className="mx-0">
-            Assinar Agora
-          </Link>
+        <Button 
+          onClick={handleSubscribe}
+          className="w-full bg-gradient-to-r from-[#a259ff] to-[#8b5cf6] hover:from-[#b366ff] hover:to-[#9c6cfa] text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 shadow-lg shadow-[#8b5cf6]/40 hover:shadow-xl hover:shadow-[#8b5cf6]/50 transform hover:scale-105 text-base"
+        >
+          Assinar Agora
         </Button>
       </div>
     </div>;

@@ -1,8 +1,54 @@
-import { plans, featuresData, featureIcons } from "./data";
+import { featuresData, featureIcons } from "./data";
 import PlanHeader from "./PlanHeader";
 import PlanBadges from "./PlanBadges";
 import { Feature } from "./types";
-const PlansTable = () => {
+
+interface Product {
+  id: string;
+  name: string;
+  price_in_cents: number;
+  duration_days: number;
+  stripe_price_id: string | null;
+}
+
+interface PlansTableProps {
+  plans: Product[];
+}
+
+const PlansTable = ({ plans }: PlansTableProps) => {
+  // Convert products to the existing plan format for compatibility
+  const convertedPlans = plans.map(product => ({
+    id: product.id,
+    name: product.name,
+    price: product.price_in_cents / 100, // Convert cents to reais
+    period: getPeriodFromDuration(product.duration_days),
+    validity: getValidityFromDuration(product.duration_days),
+    highlight: product.duration_days === 90, // Highlight quarterly plan
+    badge: product.duration_days === 90 ? "Mais Vendido" : 
+           product.duration_days === 365 ? "Melhor Custo-Benefício" : undefined,
+    priceId: product.stripe_price_id || product.id // Use stripe_price_id if available, otherwise use product id
+  }));
+
+  // Helper functions to determine period and validity
+  function getPeriodFromDuration(days: number): string {
+    if (days <= 7) return "1 vez";
+    if (days <= 30) return "mês";
+    if (days <= 60) return "2 meses";
+    if (days <= 90) return "3 meses";
+    if (days <= 180) return "6 meses";
+    if (days <= 365) return "ano";
+    return "pagamento único";
+  }
+
+  function getValidityFromDuration(days: number): string {
+    if (days <= 7) return `${days} dias`;
+    if (days <= 30) return "30 dias";
+    if (days <= 60) return "60 dias";
+    if (days <= 90) return "90 dias";
+    if (days <= 180) return "180 dias";
+    if (days <= 365) return "12 meses";
+    return "Acesso vitalício";
+  }
   // Convert featuresData to Feature objects with JSX icons
   const features: Feature[] = featuresData.map(feature => {
     const IconComponent = featureIcons[feature.iconName];
@@ -15,7 +61,7 @@ const PlansTable = () => {
   });
   return <div className="w-full max-w-7xl my-0 py-0 px-[2px] mx-0">
       {/* Badges above table */}
-      <PlanBadges plans={plans} />
+      <PlanBadges plans={convertedPlans} />
 
       {/* Main table container */}
       <div className="bg-gradient-to-br from-black via-[#0e0e0e] to-[#1a002d] rounded-3xl border border-[#8b5cf6]/30 shadow-[0_0_50px_rgba(139,92,246,0.2)] overflow-hidden">
@@ -28,7 +74,7 @@ const PlansTable = () => {
             </div>
             
             {/* Plan headers */}
-            {plans.map((plan, index) => <div key={index} className={`border-r border-[#8b5cf6]/20 last:border-r-0 ${plan.highlight ? 'bg-gradient-to-b from-[#8b5cf6]/20 to-[#8b5cf6]/10' : 'bg-[#8b5cf6]/5 hover:bg-[#8b5cf6]/10'} transition-all duration-300`}>
+            {convertedPlans.map((plan, index) => <div key={index} className={`border-r border-[#8b5cf6]/20 last:border-r-0 ${plan.highlight ? 'bg-gradient-to-b from-[#8b5cf6]/20 to-[#8b5cf6]/10' : 'bg-[#8b5cf6]/5 hover:bg-[#8b5cf6]/10'} transition-all duration-300`}>
                 <PlanHeader plan={plan} />
               </div>)}
             
@@ -45,7 +91,7 @@ const PlansTable = () => {
                 </div>
                 
                 {/* Feature values for each plan */}
-                {plans.map((plan, planIndex) => {
+                {convertedPlans.map((plan, planIndex) => {
               const isTestPlan = plan.name === "Teste";
               let showFeature = true;
               if (isTestPlan && feature.name === "Acesso Ilimitado") {
@@ -75,7 +121,7 @@ const PlansTable = () => {
         {/* Mobile Slider */}
         <div className="lg:hidden overflow-x-auto">
           <div className="flex gap-6 p-6 min-w-max">
-            {plans.map((plan, index) => <div key={index} className={`
+            {convertedPlans.map((plan, index) => <div key={index} className={`
                 min-w-[280px] rounded-2xl border border-[#8b5cf6]/30 
                 ${plan.highlight ? 'bg-gradient-to-b from-[#8b5cf6]/20 to-[#8b5cf6]/10 shadow-lg shadow-[#8b5cf6]/30' : 'bg-[#8b5cf6]/5'}
               `}>
